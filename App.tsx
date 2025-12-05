@@ -1,32 +1,34 @@
 
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Box, MessageSquare, Settings, Bell, Scan, CreditCard, FileText, PlusCircle, LogOut } from 'lucide-react';
+import { LayoutDashboard, Box, Settings, Bell, Scan, CreditCard, PlusCircle, LogOut, Loader2, X, AlertTriangle } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { AssetList } from './components/AssetList';
 import { AssetForm } from './components/AssetForm';
-import { AIChat } from './components/AIChat';
 import { QRScanner } from './components/QRScanner';
 import { AssetQRModal } from './components/AssetQRModal';
 import { SubscriptionManager } from './components/SubscriptionManager';
-import { PDFEditor } from './components/PDFEditor';
-import { Asset, ViewState, AssetType, DocumentTemplate } from './types';
-import { INITIAL_ASSETS, INITIAL_DOCUMENTS } from './constants';
+import { Asset, ViewState, AssetType, AssetStatus } from './types';
+import { db } from './services/db';
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'warning' | 'info';
+  date: string;
+}
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewState>('dashboard');
   
-  // Asset State
-  const [assets, setAssets] = useState<Asset[]>(() => {
-    const saved = localStorage.getItem('nexus_assets');
-    return saved ? JSON.parse(saved) : INITIAL_ASSETS;
-  });
+  // Data State
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Document State
-  const [documents, setDocuments] = useState<DocumentTemplate[]>(() => {
-    const saved = localStorage.getItem('nexus_documents');
-    return saved ? JSON.parse(saved) : INITIAL_DOCUMENTS;
-  });
-  
+  // Notification State
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
   // Modal States
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
@@ -34,15 +36,52 @@ const App: React.FC = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [qrAsset, setQrAsset] = useState<Asset | null>(null); 
   
-  // Persist assets to local storage
+  // Load data from DB on mount
   useEffect(() => {
-    localStorage.setItem('nexus_assets', JSON.stringify(assets));
-  }, [assets]);
+    const loadData = async () => {
+      try {
+        const loadedAssets = await db.getAssets();
+        setAssets(loadedAssets);
+        checkNotifications(loadedAssets);
+      } catch (error) {
+        console.error("Failed to load data", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
-  // Persist documents to local storage
-  useEffect(() => {
-    localStorage.setItem('nexus_documents', JSON.stringify(documents));
-  }, [documents]);
+  // Check for alerts (Subscription renewals)
+  const checkNotifications = (currentAssets: Asset[]) => {
+    const alerts: Notification[] = [];
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+    currentAssets.forEach(asset => {
+      if ((asset.type === AssetType.Subscription || asset.type === AssetType.Software) && 
+          asset.status === AssetStatus.Active && 
+          asset.renewalDate) {
+        
+        const renewalDate = new Date(asset.renewalDate);
+        if (renewalDate >= today && renewalDate <= thirtyDaysFromNow) {
+          const diffTime = Math.abs(renewalDate.getTime() - today.getTime());
+          const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+          alerts.push({
+            id: `renew-${asset.id}`,
+            title: 'Subscription Renewing Soon',
+            message: `${asset.name} renews on ${renewalDate.toLocaleDateString()} (${daysLeft} days left).`,
+            type: 'warning',
+            date: new Date().toISOString()
+          });
+        }
+      }
+    });
+
+    setNotifications(alerts);
+  };
 
   // --- Asset Handlers ---
   const handleAddAsset = () => {
@@ -70,18 +109,26 @@ const App: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleDeleteAsset = (id: string) => {
+  const handleDeleteAsset = async (id: string) => {
     if (confirm('Are you sure you want to delete this asset?')) {
-      setAssets(prev => prev.filter(a => a.id !== id));
+      await db.deleteAsset(id);
+      const updatedAssets = assets.filter(a => a.id !== id);
+      setAssets(updatedAssets);
+      checkNotifications(updatedAssets);
     }
   };
 
-  const handleSaveAsset = (asset: Asset) => {
+  const handleSaveAsset = async (asset: Asset) => {
+    await db.saveAsset(asset);
+    
+    let updatedAssets;
     if (editingAsset && editingAsset.id) {
-      setAssets(prev => prev.map(a => a.id === asset.id ? asset : a));
+      updatedAssets = assets.map(a => a.id === asset.id ? asset : a);
     } else {
-      setAssets(prev => [asset, ...prev]);
+      updatedAssets = [asset, ...assets];
     }
+    setAssets(updatedAssets);
+    checkNotifications(updatedAssets);
   };
 
   // --- Scanner Handler ---
@@ -97,6 +144,15 @@ const App: React.FC = () => {
       alert(`Asset not found with ID/Serial: ${decodedText}`);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-4">
+        <Loader2 size={40} className="animate-spin text-blue-600" />
+        <p className="font-medium animate-pulse">Connecting to Nexus Server...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -134,26 +190,11 @@ const App: React.FC = () => {
               <span>Subscriptions</span>
             </button>
             <button 
-              onClick={() => setActiveView('pdf-editor')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeView === 'pdf-editor' ? 'bg-blue-600/10 text-blue-400 font-medium' : 'hover:bg-slate-800'}`}
-            >
-              <FileText size={20} />
-              <span>PDF Editor</span>
-            </button>
-            <button 
               onClick={() => setIsScannerOpen(true)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition-all text-slate-300"
             >
               <Scan size={20} />
               <span>Scan Asset</span>
-            </button>
-            <button 
-              onClick={() => setActiveView('ai-assistant')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeView === 'ai-assistant' ? 'bg-indigo-500/10 text-indigo-400 font-medium' : 'hover:bg-slate-800'}`}
-            >
-              <MessageSquare size={20} />
-              <span className="flex-1 text-left">AI Assistant</span>
-              <span className="px-2 py-0.5 bg-indigo-500 text-white text-[10px] rounded-full">New</span>
             </button>
           </nav>
         </div>
@@ -171,10 +212,10 @@ const App: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 flex-shrink-0">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 flex-shrink-0 z-30">
           <div className="flex items-center gap-4 md:hidden">
              <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white">
                 <Box size={16} />
@@ -196,10 +237,74 @@ const App: React.FC = () => {
                <Scan size={24} />
              </button>
 
+             {/* Notification Bell */}
              <div className="relative">
-                <Bell size={20} className="text-slate-400 hover:text-slate-600 cursor-pointer transition-colors" />
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                <button 
+                  onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors relative"
+                >
+                  <Bell size={20} />
+                  {notifications.length > 0 && (
+                    <span className="absolute top-1.5 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                  )}
+                </button>
+
+                {/* Dropdown */}
+                {isNotificationsOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setIsNotificationsOpen(false)}
+                    ></div>
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-20 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                      <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+                        <h3 className="font-semibold text-slate-800">Notifications</h3>
+                        {notifications.length > 0 && (
+                          <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
+                            {notifications.length} New
+                          </span>
+                        )}
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {notifications.length > 0 ? (
+                          <div className="divide-y divide-slate-100">
+                            {notifications.map((note) => (
+                              <div key={note.id} className="p-4 hover:bg-slate-50 transition-colors">
+                                <div className="flex gap-3">
+                                  <div className={`mt-0.5 p-1.5 rounded-full h-fit flex-shrink-0 ${note.type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+                                     {note.type === 'warning' ? <AlertTriangle size={14} /> : <Box size={14} />}
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-medium text-slate-900">{note.title}</h4>
+                                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">{note.message}</p>
+                                    <div className="mt-2 text-[10px] text-slate-400">
+                                      {new Date(note.date).toLocaleTimeString()}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-8 text-center text-slate-400">
+                            <Bell size={32} className="mx-auto mb-2 opacity-20" />
+                            <p className="text-sm">No new notifications</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="px-4 py-2 border-t border-slate-100 bg-slate-50 text-center">
+                        <button 
+                          onClick={() => setActiveView('subscriptions')}
+                          className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                        >
+                          View all subscriptions
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
              </div>
+
              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium text-sm ring-4 ring-slate-50">
                JS
              </div>
@@ -226,13 +331,6 @@ const App: React.FC = () => {
                   onAdd={handleAddSubscription}
                />
              )}
-             {activeView === 'pdf-editor' && (
-               <PDFEditor 
-                 initialDocuments={documents}
-                 onSave={setDocuments}
-               />
-             )}
-             {activeView === 'ai-assistant' && <AIChat assets={assets} />}
           </div>
         </div>
       </main>

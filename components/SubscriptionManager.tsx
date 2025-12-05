@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Asset, AssetType, AssetStatus } from '../types';
-import { CreditCard, Calendar, AlertCircle, TrendingUp, CheckCircle2, Clock } from 'lucide-react';
+import { CreditCard, Calendar, AlertCircle, TrendingUp, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { STATUS_COLORS } from '../constants';
 
 interface SubscriptionManagerProps {
@@ -139,15 +139,42 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ assets
             <tbody className="divide-y divide-slate-100">
               {subs.length > 0 ? (
                 subs.map((sub) => {
-                  const isExpiringSoon = sub.renewalDate && 
-                    new Date(sub.renewalDate) > new Date() && 
-                    new Date(sub.renewalDate) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                  // Renewal Logic
+                  const today = new Date();
+                  const renewalDate = sub.renewalDate ? new Date(sub.renewalDate) : null;
+                  
+                  // Check if expiring in next 30 days
+                  const isExpiringSoon = renewalDate && 
+                    sub.status === AssetStatus.Active &&
+                    renewalDate > today && 
+                    renewalDate < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                  
+                  // Calculate days remaining
+                  let daysRemaining = null;
+                  if (renewalDate && renewalDate > today) {
+                    const diffTime = Math.abs(renewalDate.getTime() - today.getTime());
+                    daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                  }
+
+                  // Row highlight class
+                  const rowClass = isExpiringSoon 
+                    ? 'bg-amber-50 hover:bg-amber-100/80 transition-colors' 
+                    : 'hover:bg-slate-50/80 transition-colors';
 
                   return (
-                    <tr key={sub.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={sub.id} className={rowClass}>
                       <td className="px-6 py-4">
-                        <div className="font-medium text-slate-900">{sub.name}</div>
-                        <div className="text-xs text-slate-500">{sub.model}</div>
+                        <div className="flex items-center gap-3">
+                           {isExpiringSoon && (
+                             <div className="text-amber-500" title="Expiring soon">
+                               <AlertTriangle size={16} fill="currentColor" className="text-amber-200" />
+                             </div>
+                           )}
+                           <div>
+                              <div className="font-medium text-slate-900">{sub.name}</div>
+                              <div className="text-xs text-slate-500">{sub.model}</div>
+                           </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 font-medium text-slate-900">
                         ${sub.price.toLocaleString()}
@@ -156,9 +183,15 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ assets
                         {sub.billingCycle || 'One-Time'}
                       </td>
                       <td className="px-6 py-4">
-                        <div className={`flex items-center gap-2 ${isExpiringSoon ? 'text-amber-600 font-medium' : 'text-slate-600'}`}>
-                           {sub.renewalDate ? new Date(sub.renewalDate).toLocaleDateString() : '-'}
-                           {isExpiringSoon && <AlertCircle size={14} />}
+                        <div className={`flex flex-col ${isExpiringSoon ? 'text-amber-700 font-semibold' : 'text-slate-600'}`}>
+                           <span className="flex items-center gap-2">
+                             {sub.renewalDate ? new Date(sub.renewalDate).toLocaleDateString() : '-'}
+                           </span>
+                           {isExpiringSoon && daysRemaining !== null && (
+                             <span className="text-[10px] uppercase tracking-wide bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded w-fit mt-1">
+                               {daysRemaining} Days Left
+                             </span>
+                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-slate-600">

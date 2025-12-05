@@ -10,7 +10,6 @@
       body {
         font-family: 'Inter', sans-serif;
       }
-      /* Custom Scrollbar for cleaner look */
       ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
@@ -29,19 +28,28 @@
   <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
-    "html5-qrcode": "https://aistudiocdn.com/html5-qrcode@^2.3.8",
-    "react-qr-code": "https://aistudiocdn.com/react-qr-code@^2.0.15"
+    "express": "https://aistudiocdn.com/express@^5.2.1",
+    "mysql2/": "https://aistudiocdn.com/mysql2@^3.15.3/",
+    "cors": "https://aistudiocdn.com/cors@^2.8.5",
+    "body-parser": "https://aistudiocdn.com/body-parser@^2.2.1",
+    "fs": "https://aistudiocdn.com/fs@^0.0.1-security",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "vite": "https://aistudiocdn.com/vite@^7.2.6",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "react-qr-code": "https://aistudiocdn.com/react-qr-code@^2.0.18",
+    "html5-qrcode": "https://aistudiocdn.com/html5-qrcode@^2.3.8"
   }
 }
 </script>
 </head>
   <body class="bg-slate-50 text-slate-900 antialiased">
     <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

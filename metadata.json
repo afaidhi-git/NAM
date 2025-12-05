@@ -1,6 +1,6 @@
 {
   "name": "Nexus Asset Manager",
-  "description": "A comprehensive IT asset management system featuring real-time inventory tracking, lifecycle management, and an AI-powered assistant for data analysis and reporting.",
+  "description": "A comprehensive IT asset management system featuring real-time inventory tracking, lifecycle management, and detailed reporting.",
   "requestFramePermissions": [
     "camera"
   ]

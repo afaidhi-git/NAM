@@ -1,5 +1,5 @@
 
-import { Asset, AssetStatus, AssetType, DocumentTemplate } from './types';
+import { Asset, AssetStatus, AssetType } from './types';
 
 export const INITIAL_ASSETS: Asset[] = [
   {
@@ -143,66 +143,3 @@ export const STATUS_COLORS: Record<AssetStatus, string> = {
   [AssetStatus.Active]: 'bg-teal-100 text-teal-800 border-teal-200',
   [AssetStatus.Expired]: 'bg-gray-100 text-gray-500 border-gray-200',
 };
-
-export const INITIAL_DOCUMENTS: DocumentTemplate[] = [
-  {
-    id: 'DOC-001',
-    title: 'Asset Handover Form',
-    category: 'Form',
-    lastModified: '2024-03-20',
-    content: `
-      <h1 style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px;">Asset Handover Form</h1>
-      <p><strong>Date:</strong> [Current Date]</p>
-      <p><strong>Employee Name:</strong> [Employee Name]</p>
-      <p><strong>Employee ID:</strong> [ID]</p>
-      <hr />
-      <h3>Asset Details</h3>
-      <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-        <tr style="background-color: #f3f4f6;">
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Asset ID</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Description</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Serial No.</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Condition</th>
-        </tr>
-        <tr>
-          <td style="border: 1px solid #ddd; padding: 8px;">[Asset ID]</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">[Asset Name]</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">[Serial]</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">Good</td>
-        </tr>
-      </table>
-      <br />
-      <h3>Declaration</h3>
-      <p>I hereby acknowledge receipt of the above assets and agree to maintain them in good condition.</p>
-      <br /><br />
-      <div style="display: flex; justify-content: space-between; margin-top: 40px;">
-        <div style="border-top: 1px solid #000; width: 40%; padding-top: 5px;"><strong>Employee Signature</strong></div>
-        <div style="border-top: 1px solid #000; width: 40%; padding-top: 5px;"><strong>IT Manager Signature</strong></div>
-      </div>
-    `
-  },
-  {
-    id: 'DOC-002',
-    title: 'Incident Report - Lost Asset',
-    category: 'Report',
-    lastModified: '2024-03-15',
-    content: `
-      <h1 style="color: #b91c1c;">Lost/Stolen Asset Report</h1>
-      <p><strong>Incident Date:</strong> [Date]</p>
-      <p><strong>Reported By:</strong> [Name]</p>
-      <hr />
-      <h3>Incident Details</h3>
-      <p>Please describe how the loss occurred:</p>
-      <div style="background: #f9fafb; border: 1px dashed #ccc; height: 100px; padding: 10px;">
-        (Type details here...)
-      </div>
-      <h3>Asset Information</h3>
-      <ul>
-        <li><strong>Asset Model:</strong> [Model]</li>
-        <li><strong>Serial Number:</strong> [Serial]</li>
-        <li><strong>Last Known Location:</strong> [Location]</li>
-      </ul>
-      <p style="font-size: 0.9em; color: #666; margin-top: 30px;">This report will be filed with the finance department for write-off processing.</p>
-    `
-  }
-];

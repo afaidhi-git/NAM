@@ -1,5 +1,4 @@
 
-
 export enum AssetStatus {
   Available = 'Available',
   Assigned = 'Assigned',
@@ -39,20 +38,10 @@ export interface Asset {
   billingCycle?: BillingCycle;
 }
 
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'model';
-  text: string;
-  timestamp: Date;
-  isThinking?: boolean;
-}
+export type ViewState = 'dashboard' | 'inventory' | 'subscriptions' | 'reports';
 
-export type ViewState = 'dashboard' | 'inventory' | 'subscriptions' | 'pdf-editor' | 'reports' | 'ai-assistant';
-
-export interface DocumentTemplate {
-  id: string;
-  title: string;
-  content: string; // HTML content
-  lastModified: string;
-  category: 'Form' | 'Report' | 'Letter' | 'Imported';
+export interface User {
+  email: string;
+  name: string;
+  picture: string;
 }
