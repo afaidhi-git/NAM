@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Asset, AssetStatus, AssetType, BillingCycle } from '../types';
 import { X, RefreshCw, Scan, Calendar, CreditCard } from 'lucide-react';
@@ -196,7 +195,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, isOpen, onClo
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Price / Cost ($)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Price / Cost (RM)</label>
               <input 
                 type="number" 
                 min="0"

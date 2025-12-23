@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Asset, AssetType, AssetStatus } from '../types';
 import { CreditCard, Calendar, AlertCircle, TrendingUp, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
@@ -76,7 +75,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ assets
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between relative overflow-hidden">
           <div className="relative z-10">
             <p className="text-sm font-medium text-slate-500 mb-1">Monthly Spend (Est.)</p>
-            <h3 className="text-2xl font-bold text-slate-900">${metrics.monthlyTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
+            <h3 className="text-2xl font-bold text-slate-900">RM {metrics.monthlyTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
           </div>
           <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-indigo-50 to-transparent"></div>
           <div className="absolute right-4 top-4 p-2 bg-indigo-100 rounded-full text-indigo-600 z-10">
@@ -87,7 +86,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ assets
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between relative overflow-hidden">
            <div className="relative z-10">
             <p className="text-sm font-medium text-slate-500 mb-1">Annual Spend (Est.)</p>
-            <h3 className="text-2xl font-bold text-slate-900">${metrics.yearlyTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
+            <h3 className="text-2xl font-bold text-slate-900">RM {metrics.yearlyTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
           </div>
           <div className="absolute right-4 top-4 p-2 bg-emerald-100 rounded-full text-emerald-600 z-10">
              <TrendingUp size={20} />
@@ -177,7 +176,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ assets
                         </div>
                       </td>
                       <td className="px-6 py-4 font-medium text-slate-900">
-                        ${sub.price.toLocaleString()}
+                        RM {sub.price.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-slate-600">
                         {sub.billingCycle || 'One-Time'}

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import ReactDOMServer from 'react-dom/server'; // Needed to render icons/components to string for print
 import { Asset, AssetStatus, AssetType } from '../types';
@@ -355,7 +354,7 @@ export const AssetList: React.FC<AssetListProps> = ({ assets, onDelete, onEdit, 
                       <td className="px-6 py-4 text-slate-600">
                         {asset.assignedTo || <span className="text-slate-400 italic">Unassigned</span>}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">${asset.price.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-slate-600">RM {asset.price.toLocaleString()}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <button 
