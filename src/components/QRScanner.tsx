@@ -107,7 +107,7 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScan })
         setTimeout(() => {
            if (isMounted && html5QrCode) {
                try {
-                   const track = html5QrCode.getRunningTrackCamera();
+                   const track = (html5QrCode as any).getRunningTrackCamera();
                    const capabilities = track?.getCapabilities();
                    // @ts-ignore - torch is not in standard types yet
                    if (capabilities && capabilities.torch) {
