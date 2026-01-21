@@ -1,58 +1,70 @@
-
 import { Asset } from '../types';
 import { INITIAL_ASSETS } from '../constants';
 
-// Use relative URL so it works in dev (via vite proxy) and prod (via nginx)
-const API_URL = '/api'; 
+// Use bracket notation or cast to any to bypass strict ImportMeta property checks in TypeScript environments where env is not defined in types
+const API_URL = (import.meta as any).env?.VITE_API_URL || '/api'; 
 
 export class DatabaseService {
-  
+  private storageKey = 'nexus_assets_v1';
+
+  constructor() {
+    this.init();
+  }
+
+  private init() {
+    if (!localStorage.getItem(this.storageKey)) {
+      localStorage.setItem(this.storageKey, JSON.stringify(INITIAL_ASSETS));
+    }
+  }
+
   // --- Assets API ---
 
   async getAssets(): Promise<Asset[]> {
     try {
-      const response = await fetch(`${API_URL}/assets`);
-      if (!response.ok) throw new Error('Network response was not ok');
-      const assets = await response.json();
-      return assets;
+      // If VITE_API_URL is set, try to fetch from remote
+      if ((import.meta as any).env?.VITE_API_URL) {
+        const response = await fetch(`${API_URL}/assets`);
+        if (response.ok) return await response.json();
+      }
     } catch (error) {
-      console.warn('API unavailable, falling back to local storage:', error);
-      return this.getLocalAssets();
+      console.warn('Remote API failed, using LocalStorage');
     }
+    return this.getLocalAssets();
   }
 
   async saveAsset(asset: Asset): Promise<void> {
     try {
-      const response = await fetch(`${API_URL}/assets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(asset)
-      });
-      if (!response.ok) throw new Error('API Error');
+      if ((import.meta as any).env?.VITE_API_URL) {
+        const response = await fetch(`${API_URL}/assets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(asset)
+        });
+        if (response.ok) return;
+      }
     } catch (error) {
-      console.warn('API unavailable, saving locally:', error);
-      this.saveLocalAsset(asset);
+      console.warn('Remote API failed, saving to LocalStorage');
     }
+    this.saveLocalAsset(asset);
   }
 
   async deleteAsset(id: string): Promise<void> {
     try {
-      const response = await fetch(`${API_URL}/assets/${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('API Error');
+      if ((import.meta as any).env?.VITE_API_URL) {
+        const response = await fetch(`${API_URL}/assets/${id}`, { method: 'DELETE' });
+        if (response.ok) return;
+      }
     } catch (error) {
-      console.warn('API unavailable, deleting locally:', error);
-      this.deleteLocalAsset(id);
+      console.warn('Remote API failed, deleting from LocalStorage');
     }
+    this.deleteLocalAsset(id);
   }
 
-  // --- Local Storage Helpers ---
+  // --- Local Storage Implementation ---
 
   private getLocalAssets(): Asset[] {
-    const stored = localStorage.getItem('nexus_assets');
-    if (stored) return JSON.parse(stored);
-    // Initialize with mock data if empty
-    localStorage.setItem('nexus_assets', JSON.stringify(INITIAL_ASSETS));
-    return INITIAL_ASSETS;
+    const stored = localStorage.getItem(this.storageKey);
+    return stored ? JSON.parse(stored) : INITIAL_ASSETS;
   }
 
   private saveLocalAsset(asset: Asset) {
@@ -63,12 +75,12 @@ export class DatabaseService {
     } else {
       assets.unshift(asset);
     }
-    localStorage.setItem('nexus_assets', JSON.stringify(assets));
+    localStorage.setItem(this.storageKey, JSON.stringify(assets));
   }
 
   private deleteLocalAsset(id: string) {
     const assets = this.getLocalAssets().filter(a => a.id !== id);
-    localStorage.setItem('nexus_assets', JSON.stringify(assets));
+    localStorage.setItem(this.storageKey, JSON.stringify(assets));
   }
 }
 
