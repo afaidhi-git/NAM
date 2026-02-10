@@ -1,86 +1,51 @@
-import { Asset } from '../types';
-import { INITIAL_ASSETS } from '../constants';
 
-// Use bracket notation or cast to any to bypass strict ImportMeta property checks in TypeScript environments where env is not defined in types
-const API_URL = (import.meta as any).env?.VITE_API_URL || '/api'; 
+import { Asset } from '../types';
+import { supabase } from './supabaseService'; // Import Supabase client
 
 export class DatabaseService {
-  private storageKey = 'nexus_assets_v1';
-
   constructor() {
-    this.init();
+    // No initialization needed for LocalStorage
   }
 
-  private init() {
-    if (!localStorage.getItem(this.storageKey)) {
-      localStorage.setItem(this.storageKey, JSON.stringify(INITIAL_ASSETS));
-    }
-  }
-
-  // --- Assets API ---
+  // --- Assets API (using Supabase) ---
 
   async getAssets(): Promise<Asset[]> {
-    try {
-      // If VITE_API_URL is set, try to fetch from remote
-      if ((import.meta as any).env?.VITE_API_URL) {
-        const response = await fetch(`${API_URL}/assets`);
-        if (response.ok) return await response.json();
-      }
-    } catch (error) {
-      console.warn('Remote API failed, using LocalStorage');
+    const { data, error } = await supabase
+      .from('assets')
+      .select('*')
+      .order('created_at', { ascending: false }); // Assuming 'created_at' column in Supabase
+
+    if (error) {
+      console.error('Error fetching assets from Supabase:', error);
+      throw error;
     }
-    return this.getLocalAssets();
+    return data || [];
   }
 
   async saveAsset(asset: Asset): Promise<void> {
-    try {
-      if ((import.meta as any).env?.VITE_API_URL) {
-        const response = await fetch(`${API_URL}/assets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(asset)
-        });
-        if (response.ok) return;
-      }
-    } catch (error) {
-      console.warn('Remote API failed, saving to LocalStorage');
+    const { id, ...assetData } = asset; // Separate id for upsert
+
+    // Supabase upsert requires id for update, creates new if id doesn't exist
+    const { error } = await supabase
+      .from('assets')
+      .upsert({ id, ...assetData });
+
+    if (error) {
+      console.error('Error saving asset to Supabase:', error);
+      throw error;
     }
-    this.saveLocalAsset(asset);
   }
 
   async deleteAsset(id: string): Promise<void> {
-    try {
-      if ((import.meta as any).env?.VITE_API_URL) {
-        const response = await fetch(`${API_URL}/assets/${id}`, { method: 'DELETE' });
-        if (response.ok) return;
-      }
-    } catch (error) {
-      console.warn('Remote API failed, deleting from LocalStorage');
+    const { error } = await supabase
+      .from('assets')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting asset from Supabase:', error);
+      throw error;
     }
-    this.deleteLocalAsset(id);
-  }
-
-  // --- Local Storage Implementation ---
-
-  private getLocalAssets(): Asset[] {
-    const stored = localStorage.getItem(this.storageKey);
-    return stored ? JSON.parse(stored) : INITIAL_ASSETS;
-  }
-
-  private saveLocalAsset(asset: Asset) {
-    const assets = this.getLocalAssets();
-    const index = assets.findIndex(a => a.id === asset.id);
-    if (index >= 0) {
-      assets[index] = asset;
-    } else {
-      assets.unshift(asset);
-    }
-    localStorage.setItem(this.storageKey, JSON.stringify(assets));
-  }
-
-  private deleteLocalAsset(id: string) {
-    const assets = this.getLocalAssets().filter(a => a.id !== id);
-    localStorage.setItem(this.storageKey, JSON.stringify(assets));
   }
 }
 

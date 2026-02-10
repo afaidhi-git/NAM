@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { X, Camera, Zap, ZapOff, ArrowRight, Type, AlertCircle } from 'lucide-react';
@@ -119,11 +120,17 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScan })
            }
         }, 500);
 
-      } catch (err) {
+      } catch (err: any) { // Catch as any to access name property
         console.error("Error starting scanner", err);
         if (isMounted) {
             setHasCamera(false);
-            setScanError("Camera access denied or device not found. Please check permissions.");
+            if (err.name === 'NotFoundError' || err.message.includes('device not found')) {
+                setScanError("No camera device found on your system. Please ensure a camera is connected and enabled.");
+            } else if (err.name === 'NotAllowedError' || err.message.includes('Permission denied')) {
+                setScanError("Camera access was denied. Please allow camera permissions in your browser settings.");
+            } else {
+                setScanError("An unexpected error occurred while accessing the camera. " + (err.message || ""));
+            }
         }
       }
     };

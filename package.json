@@ -1,12 +1,15 @@
 {
-  "name": "nexus-frontend",
-  "version": "0.0.0",
+  "name": "nexus-asset-manager",
+  "private": true,
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.44.4",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",

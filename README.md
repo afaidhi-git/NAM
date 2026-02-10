@@ -22,50 +22,63 @@ Nexus is a robust, full-stack IT Asset Management (ITAM) system designed to stre
 
 ## 🛠 Tech Stack
 
-- **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons, Recharts.
-- **Backend**: Node.js, Express.
-- **Database**: MySQL 8.0.
-- **DevOps**: Docker & Docker Compose.
+- **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons, Recharts, **Supabase Client**.
+- **Backend**: **Supabase (PostgreSQL, Auth, Realtime)**.
+- **Database**: **Supabase PostgreSQL**.
 
 ## 🏁 Getting Started
 
-### Local Development
+### 1. Supabase Project Setup (Manual - One Time)
 
-1. **Install Dependencies**:
-   ```bash
-   npm install
-   cd server && npm install
-   ```
+1.  **Create a Project**: Sign up at [Supabase](https://supabase.com/) and create a new project.
+2.  **Get Credentials**: Find your `Project URL` and `Anon Key` in `Project Settings` > `API`.
+3.  **Create `assets` Table**: In the Supabase SQL Editor or Table Editor, create a table named `assets` with the following columns (matching `Asset` type in `src/types.ts`):
+    *   `id` (TEXT, Primary Key)
+    *   `name` (TEXT)
+    *   `model` (TEXT)
+    *   `serialNumber` (TEXT)
+    *   `type` (TEXT)
+    *   `status` (TEXT)
+    *   `purchaseDate` (DATE or TEXT)
+    *   `price` (NUMERIC)
+    *   `assignedTo` (TEXT, nullable)
+    *   `notes` (TEXT, nullable)
+    *   `renewalDate` (DATE or TEXT, nullable)
+    *   `billingCycle` (TEXT, nullable)
+    *   `created_at` (TIMESTAMP WITH TIME ZONE, default `now()`) - *Recommended for ordering*
+4.  **Enable RLS & Policies**: Go to `Authentication` > `Policies` for the `assets` table.
+    *   Enable Row Level Security.
+    *   Create policies to allow authenticated users to perform `SELECT`, `INSERT`, `UPDATE`, and `DELETE` on the `assets` table.
+        *   **SELECT**: `FOR SELECT USING (true)`
+        *   **INSERT**: `FOR INSERT WITH CHECK (auth.role() = 'authenticated')`
+        *   **UPDATE**: `FOR UPDATE USING (auth.role() = 'authenticated')` (or `auth.uid() = user_id` if you add a `user_id` column to `assets` table)
+        *   **DELETE**: `FOR DELETE USING (auth.role() = 'authenticated')`
+5.  **Enable Email Auth**: In `Authentication` > `Settings`, ensure `Email` provider is enabled.
 
-2. **Environment Setup**:
-   Create a `.env` file in the root with:
-   ```env
-   API_KEY=your_gemini_api_key_here
-   ```
+### 2. Local Development
 
-3. **Run Services**:
-   - Start Backend: `cd server && npm start`
-   - Start Frontend: `npm run dev`
-
-### Docker Deployment (Recommended)
-
-The easiest way to run Nexus in production is via Docker Compose:
-
-```bash
-# Clone the repository
-git clone <repo-url>
-cd nexus-asset-manager
-
-# Start the stack (Port 80 by default)
-API_KEY=your_key docker-compose up -d --build
-```
+1.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+2.  **Environment Setup**:
+    Create a `.env` file in the project root with your Supabase credentials and (optionally) your Gemini API key:
+    ```env
+    VITE_SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
+    VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+    API_KEY=your_gemini_api_key_here # For future AI features
+    ```
+3.  **Run Frontend**:
+    ```bash
+    npm run dev
+    ```
+    Your app will be available at `http://localhost:5173`.
 
 ## 📂 Project Structure
 
 - `/src`: React frontend application.
-- `/src/components`: UI modules (Inventory, Dashboard, Subscription Manager).
-- `/src/services`: API client (`db.ts`) and local storage fallbacks.
-- `/server`: Node.js Express API and MySQL schema.
+- `/src/components`: UI modules (Inventory, Dashboard, Subscription Manager, **Auth**).
+- `/src/services`: **Supabase client (`supabaseService.ts`)**, API client (`db.ts`) for Supabase interactions.
 
 ## 🔔 Notification System
 

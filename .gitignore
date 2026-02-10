@@ -2,4 +2,9 @@ node_modules
 dist
 .env
 .DS_Store
-mysql_data
+# Remove old backend specific ignores
+# mysql_data
+# server/node_modules
+# docker-compose.yml
+# netlify.toml
+# public/_redirects

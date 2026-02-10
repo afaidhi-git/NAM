@@ -1,4 +1,6 @@
 
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+
 export enum AssetStatus {
   Available = 'Available',
   Assigned = 'Assigned',
@@ -40,8 +42,5 @@ export interface Asset {
 
 export type ViewState = 'dashboard' | 'inventory' | 'subscriptions' | 'reports';
 
-export interface User {
-  email: string;
-  name: string;
-  picture: string;
-}
+export interface User extends SupabaseUser {}
+export interface AuthSession extends Session {}

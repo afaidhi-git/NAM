@@ -1,14 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Box, Settings, Bell, Scan, CreditCard, PlusCircle, LogOut, Loader2, X, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Box, Settings, Bell, Scan, CreditCard, PlusCircle, LogOut, Loader2, X, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { AssetList } from './components/AssetList';
 import { AssetForm } from './components/AssetForm';
 import { QRScanner } from './components/QRScanner';
 import { AssetQRModal } from './components/AssetQRModal';
 import { SubscriptionManager } from './components/SubscriptionManager';
-import { Asset, ViewState, AssetType, AssetStatus } from './types';
+import { Auth } from './components/Auth';
+import { Asset, ViewState, AssetType, AssetStatus, User, AuthSession } from './types';
 import { db } from './services/db';
+import { supabase } from './services/supabaseService';
 
 interface Notification {
   id: string;
@@ -21,9 +22,15 @@ interface Notification {
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewState>('dashboard');
   
+  // Auth State
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   // Data State
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Notification State
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -36,21 +43,56 @@ const App: React.FC = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [qrAsset, setQrAsset] = useState<Asset | null>(null); 
   
-  // Load data from DB on mount
+  // --- Supabase Auth & Session Management ---
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const loadedAssets = await db.getAssets();
-        setAssets(loadedAssets);
-        checkNotifications(loadedAssets);
-      } catch (error) {
-        console.error("Failed to load data", error);
-      } finally {
-        setIsLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user || null);
+      setAuthLoading(false);
+    }).catch(err => {
+      console.error("Auth session error", err);
+      setAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        setUser(session?.user || null);
+        setAuthLoading(false);
       }
-    };
-    loadData();
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Load data from DB on successful authentication
+  const loadData = async () => {
+    if (!session) return;
+    try {
+      setDataLoading(true);
+      setError(null);
+      const loadedAssets = await db.getAssets();
+      setAssets(loadedAssets);
+      checkNotifications(loadedAssets);
+    } catch (err: any) {
+      console.error("Failed to load data", err);
+      setError("Unable to connect to database. Please verify your internet connection and Supabase settings.");
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session) {
+      loadData();
+    } else {
+      setAssets([]); 
+      setNotifications([]);
+      if (!authLoading) setDataLoading(false);
+    }
+  }, [session, authLoading]);
 
   // Check for alerts (Subscription renewals)
   const checkNotifications = (currentAssets: Asset[]) => {
@@ -111,24 +153,31 @@ const App: React.FC = () => {
 
   const handleDeleteAsset = async (id: string) => {
     if (confirm('Are you sure you want to delete this asset?')) {
-      await db.deleteAsset(id);
-      const updatedAssets = assets.filter(a => a.id !== id);
-      setAssets(updatedAssets);
-      checkNotifications(updatedAssets);
+      try {
+        await db.deleteAsset(id);
+        const updatedAssets = assets.filter(a => a.id !== id);
+        setAssets(updatedAssets);
+        checkNotifications(updatedAssets);
+      } catch (err) {
+        alert("Failed to delete asset. Please try again.");
+      }
     }
   };
 
   const handleSaveAsset = async (asset: Asset) => {
-    await db.saveAsset(asset);
-    
-    let updatedAssets;
-    if (editingAsset && editingAsset.id) {
-      updatedAssets = assets.map(a => a.id === asset.id ? asset : a);
-    } else {
-      updatedAssets = [asset, ...assets];
+    try {
+      await db.saveAsset(asset);
+      let updatedAssets;
+      if (editingAsset && editingAsset.id) {
+        updatedAssets = assets.map(a => a.id === asset.id ? asset : a);
+      } else {
+        updatedAssets = [asset, ...assets];
+      }
+      setAssets(updatedAssets);
+      checkNotifications(updatedAssets);
+    } catch (err) {
+      alert("Failed to save asset. Please check your connection.");
     }
-    setAssets(updatedAssets);
-    checkNotifications(updatedAssets);
   };
 
   // --- Scanner Handler ---
@@ -145,14 +194,29 @@ const App: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setAssets([]);
+    setNotifications([]);
+    setActiveView('dashboard');
+  };
+
+  if (authLoading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-4">
         <Loader2 size={40} className="animate-spin text-blue-600" />
-        <p className="font-medium animate-pulse">Connecting to Nexus Server...</p>
+        <p className="font-medium animate-pulse">Authenticating Nexus...</p>
       </div>
     );
   }
+
+  if (!session) {
+    return <Auth />;
+  }
+
+  const userInitials = user?.email ? user.email.substring(0, 2).toUpperCase() : '??';
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -204,7 +268,10 @@ const App: React.FC = () => {
              <Settings size={20} />
              <span>Settings</span>
           </button>
-           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition-all text-slate-400">
+           <button 
+             onClick={handleSignOut}
+             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition-all text-slate-400"
+           >
              <LogOut size={20} />
              <span>Sign Out</span>
           </button>
@@ -294,7 +361,10 @@ const App: React.FC = () => {
                       </div>
                       <div className="px-4 py-2 border-t border-slate-100 bg-slate-50 text-center">
                         <button 
-                          onClick={() => setActiveView('subscriptions')}
+                          onClick={() => {
+                            setActiveView('subscriptions');
+                            setIsNotificationsOpen(false);
+                          }}
                           className="text-xs font-medium text-blue-600 hover:text-blue-700"
                         >
                           View all subscriptions
@@ -306,7 +376,7 @@ const App: React.FC = () => {
              </div>
 
              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white font-medium text-sm ring-4 ring-slate-50">
-               JS
+               {userInitials}
              </div>
           </div>
         </header>
@@ -314,37 +384,63 @@ const App: React.FC = () => {
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8">
           <div className="max-w-7xl mx-auto h-full">
-             {activeView === 'dashboard' && <Dashboard assets={assets} />}
-             {activeView === 'inventory' && (
-               <AssetList 
-                  assets={assets} 
-                  onDelete={handleDeleteAsset} 
-                  onEdit={handleEditAsset} 
-                  onAdd={handleAddAsset}
-                  onShowQR={setQrAsset}
-               />
+             {error && (
+                <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-4 rounded-xl flex items-center justify-between animate-in slide-in-from-top-4 duration-300">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle size={20} className="text-red-500" />
+                    <p className="text-sm font-medium">{error}</p>
+                  </div>
+                  <button 
+                    onClick={loadData}
+                    className="p-2 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                  >
+                    <RefreshCw size={18} />
+                  </button>
+                </div>
              )}
-             {activeView === 'subscriptions' && (
-               <SubscriptionManager 
-                  assets={assets}
-                  onEdit={handleEditAsset}
-                  onAdd={handleAddSubscription}
-               />
+
+             {dataLoading ? (
+               <div className="h-64 flex flex-col items-center justify-center text-slate-400 gap-4">
+                 <Loader2 size={32} className="animate-spin text-blue-600" />
+                 <p className="text-sm font-medium">Synchronizing data...</p>
+               </div>
+             ) : (
+               <>
+                 {activeView === 'dashboard' && <Dashboard assets={assets} />}
+                 {activeView === 'inventory' && (
+                   <AssetList 
+                      assets={assets} 
+                      onDelete={handleDeleteAsset} 
+                      onEdit={handleEditAsset} 
+                      onAdd={handleAddAsset}
+                      onShowQR={setQrAsset}
+                   />
+                 )}
+                 {activeView === 'subscriptions' && (
+                   <SubscriptionManager 
+                      assets={assets}
+                      onEdit={handleEditAsset}
+                      onAdd={handleAddSubscription}
+                   />
+                 )}
+               </>
              )}
           </div>
         </div>
       </main>
 
       {/* Floating Action Button for Mobile */}
-      <button 
-        className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-300 flex items-center justify-center z-40 active:scale-95 transition-transform"
-        onClick={() => {
-          if (activeView === 'subscriptions') handleAddSubscription();
-          else handleAddAsset();
-        }}
-      >
-        <PlusCircle size={28} />
-      </button>
+      {!dataLoading && !error && (
+        <button 
+          className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-300 flex items-center justify-center z-40 active:scale-95 transition-transform"
+          onClick={() => {
+            if (activeView === 'subscriptions') handleAddSubscription();
+            else handleAddAsset();
+          }}
+        >
+          <PlusCircle size={28} />
+        </button>
+      )}
 
       {/* Modals */}
       <AssetForm 

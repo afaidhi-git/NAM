@@ -78,25 +78,24 @@ export const AssetList: React.FC<AssetListProps> = ({ assets, onDelete, onEdit, 
 
       // Generate HTML for labels dynamically
       // We use ReactDOMServer to render the QRCode component to a string
-      const labelsHtml = orderedAssets.map(asset => {
-        // Render QRCode to static markup
+      const labelsHtml = orderedAssets.map(asset => { // Fix: Define labelsHtml and iterate over orderedAssets
         const qrSvg = ReactDOMServer.renderToStaticMarkup(
-          <QRCode value={asset.id} size={80} level="M" />
-        );
+            <QRCode value={asset.id} size={80} level="M" />
+          );
 
-        return `
-          <div class="label-card">
-            <div class="qr-section">
-              ${qrSvg}
+          return `
+            <div class="label-card">
+              <div class="qr-section">
+                ${qrSvg}
+              </div>
+              <div class="info-section">
+                <h2>${asset.name}</h2>
+                <div><span class="tag">${asset.id}</span></div>
+                <div class="meta">SN: ${asset.serialNumber}</div>
+              </div>
             </div>
-            <div class="info-section">
-              <h2>${asset.name}</h2>
-              <div><span class="tag">${asset.id}</span></div>
-              <div class="meta">SN: ${asset.serialNumber}</div>
-            </div>
-          </div>
-        `;
-      }).join('');
+          `;
+        }).join(''); // Fix: Call .join('') on the map result
 
       const htmlContent = `
         <!DOCTYPE html>
@@ -210,6 +209,7 @@ export const AssetList: React.FC<AssetListProps> = ({ assets, onDelete, onEdit, 
     }
   };
 
+  // Fix: Move isAllSelected and selectedAssetsList inside the component scope
   const isAllSelected = filteredAssets.length > 0 && selectedIds.size === filteredAssets.length;
   
   // Get currently selected asset objects
