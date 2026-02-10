@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { X, Camera, Zap, ZapOff, ArrowRight, Type, AlertCircle } from 'lucide-react';
@@ -108,10 +107,10 @@ export const QRScanner: React.FC<QRScannerProps> = ({ isOpen, onClose, onScan })
         setTimeout(() => {
            if (isMounted && html5QrCode) {
                try {
-                   const track = html5QrCode.getRunningTrackCamera();
-                   const capabilities = track?.getCapabilities();
+                   // Fix: Use getRunningTrackCapabilities() which is the correct method in Html5Qrcode to get camera capabilities.
+                   const capabilities = html5QrCode.getRunningTrackCapabilities();
                    // @ts-ignore - torch is not in standard types yet
-                   if (capabilities && capabilities.torch) {
+                   if (capabilities && (capabilities as any).torch) {
                        setTorchSupported(true);
                    }
                } catch (e) {
