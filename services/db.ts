@@ -1,49 +1,51 @@
-
 import { Asset } from '../types';
-import { supabase } from './supabaseService'; // Import Supabase client
+import { supabase } from './supabaseService';
 
 export class DatabaseService {
-  constructor() {
-    // No initialization needed for LocalStorage
+  private ensureClient() {
+    if (!supabase) {
+      throw new Error('Supabase client is not initialized. Please check your environment variables (VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY).');
+    }
+    return supabase;
   }
 
-  // --- Assets API (using Supabase) ---
-
   async getAssets(): Promise<Asset[]> {
-    const { data, error } = await supabase
+    const client = this.ensureClient();
+    const { data, error } = await client
       .from('assets')
       .select('*')
-      .order('created_at', { ascending: false }); // Assuming 'created_at' column in Supabase
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching assets from Supabase:', error);
+      console.error('Error fetching assets:', error);
       throw error;
     }
     return data || [];
   }
 
   async saveAsset(asset: Asset): Promise<void> {
-    const { id, ...assetData } = asset; // Separate id for upsert
+    const client = this.ensureClient();
+    const { id, ...assetData } = asset;
 
-    // Supabase upsert requires id for update, creates new if id doesn't exist
-    const { error } = await supabase
+    const { error } = await client
       .from('assets')
       .upsert({ id, ...assetData });
 
     if (error) {
-      console.error('Error saving asset to Supabase:', error);
+      console.error('Error saving asset:', error);
       throw error;
     }
   }
 
   async deleteAsset(id: string): Promise<void> {
-    const { error } = await supabase
+    const client = this.ensureClient();
+    const { error } = await client
       .from('assets')
       .delete()
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting asset from Supabase:', error);
+      console.error('Error deleting asset:', error);
       throw error;
     }
   }

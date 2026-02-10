@@ -1,9 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Robust environment variable resolution.
- * Attempts to use Vite's standard import.meta.env first, 
- * falling back to process.env (injected by Vite define).
  */
 // @ts-ignore
 const getEnv = (key: string) => {
@@ -28,15 +26,14 @@ const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
 // Diagnostic logging for the browser console
 console.group('Nexus Supabase Initialization');
-console.log('URL Status:', supabaseUrl ? '✅ Resolved' : '❌ Missing');
-console.log('Key Status:', supabaseAnonKey ? '✅ Resolved' : '❌ Missing');
+console.log('URL Status:', supabaseUrl ? '✅ Found' : '❌ Missing');
+console.log('Key Status:', supabaseAnonKey ? '✅ Found' : '❌ Missing');
 console.groupEnd();
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Supabase configuration missing. Please ensure VITE_SUPABASE_URL and " +
-    "VITE_SUPABASE_ANON_KEY are correctly defined in your .env file or VPS environment variables."
-  );
-}
+// Instead of throwing, we export a potentially null client or handle the error.
+// This prevents the whole JS bundle from failing to load (White Screen).
+export const supabase: SupabaseClient | null = (supabaseUrl && supabaseAnonKey) 
+  ? createClient(supabaseUrl, supabaseAnonKey) 
+  : null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
