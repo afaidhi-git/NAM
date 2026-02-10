@@ -2,9 +2,9 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Robust environment variable resolution.
+ * Checks import.meta.env (Vite), process.env (Node/VPS), and window (Shim).
  */
-// @ts-ignore
-const getEnv = (key: string) => {
+const getEnv = (key: string): string => {
   try {
     // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
@@ -13,8 +13,17 @@ const getEnv = (key: string) => {
   } catch (e) {}
   
   try {
+    // @ts-ignore
     if (typeof process !== 'undefined' && process.env && process.env[key]) {
       return process.env[key];
+    }
+  } catch (e) {}
+
+  try {
+    // @ts-ignore
+    if (window.process && window.process.env && window.process.env[key]) {
+      // @ts-ignore
+      return window.process.env[key];
     }
   } catch (e) {}
   
@@ -24,16 +33,13 @@ const getEnv = (key: string) => {
 const supabaseUrl = getEnv('VITE_SUPABASE_URL');
 const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY');
 
-// Diagnostic logging for the browser console
-console.group('Nexus Supabase Initialization');
-console.log('URL Status:', supabaseUrl ? '✅ Found' : '❌ Missing');
-console.log('Key Status:', supabaseAnonKey ? '✅ Found' : '❌ Missing');
-console.groupEnd();
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
-// Instead of throwing, we export a potentially null client or handle the error.
-// This prevents the whole JS bundle from failing to load (White Screen).
-export const supabase: SupabaseClient | null = (supabaseUrl && supabaseAnonKey) 
+// Log configuration status safely
+if (!isSupabaseConfigured) {
+  console.warn('Supabase credentials missing. Check your .env file.');
+}
+
+export const supabase: SupabaseClient | null = isSupabaseConfigured 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
-
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);

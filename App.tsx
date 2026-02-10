@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Box, Settings, Bell, Scan, CreditCard, PlusCircle, LogOut, Loader2, X, AlertTriangle, RefreshCw, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Box, Settings, Bell, Scan, CreditCard, PlusCircle, LogOut, Loader2, AlertTriangle, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { AssetList } from './components/AssetList';
 import { AssetForm } from './components/AssetForm';
@@ -46,7 +46,6 @@ const App: React.FC = () => {
   // --- Initialization & Auth Management ---
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
-      setError("Supabase configuration is missing. Please check your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY variables.");
       setAuthLoading(false);
       setDataLoading(false);
       return;
@@ -144,8 +143,6 @@ const App: React.FC = () => {
     setActiveView('dashboard');
   };
 
-  // --- Render Logic ---
-
   if (authLoading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-4">
@@ -155,22 +152,22 @@ const App: React.FC = () => {
     );
   }
 
-  // Handle configuration error screen
-  if (!isSupabaseConfigured && !session) {
+  // Handle configuration error screen explicitly to avoid white screen
+  if (!isSupabaseConfigured) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border-t-4 border-red-500">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center border-t-4 border-red-500 animate-in fade-in zoom-in-95 duration-300">
           <ShieldAlert size={64} className="mx-auto text-red-500 mb-6" />
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Configuration Error</h1>
           <p className="text-slate-500 mb-8 leading-relaxed">
-            Nexus cannot connect to its database. The Supabase URL and API Key are missing from your environment.
+            Nexus cannot connect to the database. Your Supabase environment variables are missing.
           </p>
-          <div className="bg-slate-50 p-4 rounded-lg text-left text-xs font-mono text-slate-600 mb-6 overflow-x-auto">
-            VITE_SUPABASE_URL=missing<br/>
-            VITE_SUPABASE_ANON_KEY=missing
+          <div className="bg-slate-50 p-4 rounded-lg text-left text-xs font-mono text-slate-600 mb-6 space-y-1">
+            <div className="flex justify-between"><span>VITE_SUPABASE_URL</span> <span className="text-red-500">Missing</span></div>
+            <div className="flex justify-between"><span>VITE_SUPABASE_ANON_KEY</span> <span className="text-red-500">Missing</span></div>
           </div>
-          <p className="text-sm text-slate-400">
-            Please check your <code>.env</code> file or VPS environment settings and restart the build.
+          <p className="text-sm text-slate-400 italic">
+            Check the <code>.env</code> file in your project root and ensure it contains your Supabase Project URL and Anon Key.
           </p>
         </div>
       </div>
@@ -185,7 +182,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* Sidebar */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex-shrink-0 hidden md:flex flex-col">
         <div className="p-6">
           <div className="flex items-center gap-3 text-white mb-8">
@@ -238,7 +234,6 @@ const App: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 flex-shrink-0 z-30">
           <div className="flex items-center gap-4 md:hidden">
